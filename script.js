@@ -4,82 +4,64 @@ import {
     validateService
 } from "./formValidation.js";
 
-console.log("DETAIL PRO: сайт успешно загружен");
-
+// Мобильное меню
 const menuButton = document.querySelector(".menu-toggle");
 const navigation = document.querySelector("#main-navigation");
 
 if (menuButton && navigation) {
-
     function closeMenu() {
         navigation.classList.remove("is-open");
-
-        menuButton.setAttribute(
-            "aria-expanded",
-            "false"
-        );
-
-        menuButton.setAttribute(
-            "aria-label",
-            "Открыть меню"
-        );
+        menuButton.setAttribute("aria-expanded", "false");
+        menuButton.setAttribute("aria-label", "Открыть меню");
     }
 
     menuButton.addEventListener("click", () => {
         const isOpen = navigation.classList.toggle("is-open");
-
-        menuButton.setAttribute(
-            "aria-expanded",
-            String(isOpen)
-        );
-
+        menuButton.setAttribute("aria-expanded", String(isOpen));
         menuButton.setAttribute(
             "aria-label",
             isOpen ? "Закрыть меню" : "Открыть меню"
         );
     });
 
-    // Закрываем меню после выбора раздела
-
     navigation.querySelectorAll("a").forEach((link) => {
         link.addEventListener("click", closeMenu);
     });
 
-    // Закрываем меню клавишей Escape
-
     document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") {
-            closeMenu();
-        }
-    });
-
-    // Закрываем меню при переходе на широкий экран
-
-    const desktopQuery = window.matchMedia(
-        "(min-width: 769px)"
-    );
-
-    desktopQuery.addEventListener("change", (event) => {
-        if (event.matches) {
-            closeMenu();
-        }
+        if (event.key === "Escape") closeMenu();
     });
 
     document.addEventListener("click", (event) => {
-
-    const clickedInsideMenu = navigation.contains(event.target);
-    const clickedButton = menuButton.contains(event.target);
-
-    if (!clickedInsideMenu && !clickedButton) {
-        closeMenu();
-    }
-
-});
+        if (
+            !navigation.contains(event.target) &&
+            !menuButton.contains(event.target)
+        ) {
+            closeMenu();
+        }
+    });
 }
 
+// Отправка заявки на сервер
+async function sendBooking(data) {
+    const response = await fetch("https://detail-pro-api.onrender.com/api/booking", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+    });
 
-/* ===== Урок 40: форма заявки ===== */
+    const result = await response.json();
 
+    if (!response.ok || !result.success) {
+        throw new Error(result.message || "Ошибка отправки");
+    }
+
+    return result;
+}
+
+// Форма
 const contactForm = document.querySelector("#contact-form");
 
 if (contactForm) {
@@ -87,94 +69,64 @@ if (contactForm) {
     const phoneInput = document.querySelector("#client-phone");
     const serviceInput = document.querySelector("#client-service");
     const messageInput = document.querySelector("#client-message");
-
     const submitButton = document.querySelector("#submit-button");
     const formResult = document.querySelector("#form-result");
+    const messageCounter = document.querySelector("#message-counter");
 
-    function setFieldState(input, errorId, message) {
+    const serviceNames = {
+        polishing: "Полировка кузова",
+        interior: "Химчистка салона",
+        coating: "Защитное покрытие"
+    };
+
+    function setFieldState(input, errorId, valid, errorText) {
         const errorElement = document.querySelector(errorId);
-        const hasError = message !== "";
 
-        errorElement.textContent = message;
+        errorElement.textContent = valid ? "" : errorText;
+        input.classList.toggle("input-error", !valid);
+        input.classList.toggle("input-success", valid);
+        input.setAttribute("aria-invalid", String(!valid));
 
-        input.classList.toggle("input-error", hasError);
-        input.classList.toggle("input-success", !hasError);
-
-        input.setAttribute(
-            "aria-invalid",
-            String(hasError)
-        );
-
-        return !hasError;
+        return valid;
     }
 
     function checkName() {
-        const isValid = validateName(nameInput.value);
-
         return setFieldState(
             nameInput,
             "#name-error",
-            isValid ? "" : "Введите минимум 2 символа."
+            validateName(nameInput.value),
+            "Введите минимум 2 символа."
         );
     }
 
     function checkPhone() {
-        const isValid = validatePhone(phoneInput.value);
-
         return setFieldState(
             phoneInput,
             "#phone-error",
-            isValid ? "" : "Введите корректный номер телефона."
+            validatePhone(phoneInput.value),
+            "Введите корректный номер телефона."
         );
     }
 
     function checkService() {
-        const isValid = validateService(serviceInput.value);
-
         return setFieldState(
             serviceInput,
             "#service-error",
-            isValid ? "" : "Выберите услугу."
+            validateService(serviceInput.value),
+            "Выберите услугу."
         );
     }
-
-    // Проверяем поля после завершения ввода
 
     nameInput.addEventListener("blur", checkName);
     phoneInput.addEventListener("blur", checkPhone);
     serviceInput.addEventListener("change", checkService);
 
-    function validateForm() {
-        const nameValid = checkName();
-        const phoneValid = checkPhone();
-        const serviceValid = checkService();
-
-        return nameValid && phoneValid && serviceValid;
-    }
-
-    function clearFieldStates() {
-        [nameInput, phoneInput, serviceInput].forEach((input) => {
-            input.classList.remove(
-                "input-error",
-                "input-success"
-            );
-
-            input.removeAttribute("aria-invalid");
-        });
-
-        document.querySelectorAll(".form-error").forEach((error) => {
-            error.textContent = "";
-        });
-    }
-
-    // Демонстрационная асинхронная операция
-    // Она НЕ отправляет данные на сервер
-
-    function simulateRequest() {
-        return new Promise((resolve) => {
-            setTimeout(resolve, 1200);
-        });
-    }
+    messageInput.addEventListener("input", () => {
+        if (messageCounter) {
+            messageCounter.textContent =
+                `${messageInput.value.length} / 500 символов`;
+        }
+    });
 
     contactForm.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -182,72 +134,53 @@ if (contactForm) {
         formResult.textContent = "";
         formResult.className = "form-result";
 
-        if (!validateForm()) {
-            formResult.textContent =
-                "Проверьте правильность заполнения формы.";
+        const validName = checkName();
+        const validPhone = checkPhone();
+        const validService = checkService();
 
+        if (!validName || !validPhone || !validService) {
+            formResult.textContent = "Проверьте данные формы.";
             formResult.classList.add("error");
-
-            const firstInvalid = contactForm.querySelector(
-                '[aria-invalid="true"]'
-            );
-
-            firstInvalid?.focus();
             return;
         }
 
-        const formData = {
+        const bookingData = {
             name: nameInput.value.trim(),
             phone: phoneInput.value.trim(),
-            service: serviceInput.value,
-            message: messageInput.value.trim()
+            service: serviceNames[serviceInput.value],
+            comment: messageInput.value.trim()
         };
 
         submitButton.disabled = true;
-        submitButton.textContent = "Обработка заявки...";
+        submitButton.textContent = "Отправка...";
 
         try {
-            await simulateRequest();
+            const result = await sendBooking(bookingData);
 
-            console.log(
-                "Демо-заявка прошла проверку:",
-                {
-                    service: formData.service,
-                    hasMessage: formData.message.length > 0
-                }
-            );
-
-            formResult.textContent =
-                "Демонстрационная заявка успешно обработана. " +
-                "Данные никуда не отправлены.";
-
+            formResult.textContent = result.message;
             formResult.classList.add("success");
 
             contactForm.reset();
-            clearFieldStates();
 
+            [nameInput, phoneInput, serviceInput].forEach((input) => {
+                input.classList.remove("input-error", "input-success");
+                input.removeAttribute("aria-invalid");
+            });
+
+            document.querySelectorAll(".form-error").forEach((element) => {
+                element.textContent = "";
+            });
+
+            if (messageCounter) {
+                messageCounter.textContent = "0 / 500 символов";
+            }
         } catch (error) {
-            console.error("Ошибка обработки формы:", error);
-
-            formResult.textContent =
-                "Не удалось обработать заявку. Попробуйте ещё раз.";
-
+            console.error("Ошибка заявки:", error);
+            formResult.textContent = error.message;
             formResult.classList.add("error");
-
         } finally {
             submitButton.disabled = false;
             submitButton.textContent = "Отправить заявку";
         }
     });
-    const messageCounter = document.querySelector("#message-counter");
-
-messageInput.addEventListener("input", () => {
-    messageCounter.textContent =
-        `${messageInput.value.length} / 500 символов`;
-});
 }
-phoneInput.addEventListener("input", () => {
-    if (phoneInput.classList.contains("input-error")) {
-        checkPhone();
-    }
-});
