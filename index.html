@@ -17,6 +17,7 @@
     <title>DETAIL PRO — Детейлинг автомобилей</title>
 
     <link rel="stylesheet" href="./style.css">
+    <link rel="icon" href="data:,">
 
     <script type="module" src="./script.js"></script>
 </head>
@@ -256,11 +257,25 @@
             </div>
         </div>
 
+        <div class="contact-form-wrapper">
         <form
-            class="contact-form"
-            id="contact-form"
-            novalidate
+        id="contact-form"
+        class="contact-form"
+        novalidate
         >
+
+        <div class="honeypot-field" aria-hidden="true">
+            <label for="company-website">
+                Сайт компании
+            </label>
+            <input
+                type="text"
+                id="company-website"
+                name="companyWebsite"
+                tabindex="-1"
+                autocomplete="off"
+            >
+        </div>
             <div class="form-group">
                 <label for="client-name">
                     Ваше имя *

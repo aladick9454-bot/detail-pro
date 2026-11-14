@@ -44,7 +44,16 @@ if (menuButton && navigation) {
 
 // Отправка заявки на сервер
 async function sendBooking(data) {
-    const response = await fetch("https://detail-pro-api.onrender.com/api/booking", {
+    const isLocal = [
+        "localhost",
+        "127.0.0.1"
+    ].includes(window.location.hostname);
+
+    const API_URL = isLocal
+        ? "/api/booking"
+        : "https://detail-pro-api.onrender.com/api/booking";
+
+    const response = await fetch(API_URL, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -148,7 +157,8 @@ if (contactForm) {
             name: nameInput.value.trim(),
             phone: phoneInput.value.trim(),
             service: serviceNames[serviceInput.value],
-            comment: messageInput.value.trim()
+            comment: messageInput.value.trim(),
+            companyWebsite: document.querySelector("#company-website").value = ""
         };
 
         submitButton.disabled = true;
