@@ -25,12 +25,29 @@ const services = [
     "Защитное покрытие"
 ];
 
+
 function validateRequest(data) {
-    if (!data || typeof data !== "object") {
+    if (
+        !data ||
+        typeof data !== "object" ||
+        Array.isArray(data)
+    ) {
         return false;
     }
 
-    const { name, phone, service, comment = "" } = data;
+    const {
+        name,
+        phone,
+        service,
+        comment = ""
+    } = data;
+
+    if (
+    typeof data.companyWebsite !== "string" ||
+    data.companyWebsite !== ""
+) {
+    return false;
+}
 
     if (
         typeof name !== "string" ||
@@ -42,14 +59,24 @@ function validateRequest(data) {
 
     if (
         typeof phone !== "string" ||
-        !/^\+?[0-9\s()-]{10,20}$/.test(phone) ||
-        phone.replace(/\D/g, "").length < 10 ||
-        phone.replace(/\D/g, "").length > 15
+        !/^\+?[0-9\s()-]{10,20}$/.test(phone)
     ) {
         return false;
     }
 
-    if (!services.includes(service)) {
+    const digits = phone.replace(/\D/g, "");
+
+    if (digits.length < 10 || digits.length > 15) {
+        return false;
+    }
+
+    const allowedServices = [
+        "Полировка кузова",
+        "Химчистка салона",
+        "Защитное покрытие"
+    ];
+
+    if (!allowedServices.includes(service)) {
         return false;
     }
 
@@ -63,16 +90,45 @@ function validateRequest(data) {
     return true;
 }
 
+
 const cors = require("cors");
 
-const allowedOrigin =
-    "https://aladick9454-bot.github.io";
+const { rateLimit } = require("express-rate-limit");
+
+
+const allowedOrigins = [
+    "https://aladick9454-bot.github.io",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+];
 
 app.use(cors({
-    origin: allowedOrigin,
-    methods: ["POST"],
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error("CORS: источник не разрешён"));
+    },
+    methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"]
 }));
+
+
+
+const bookingLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: {
+        success: false,
+        message: "Слишком много заявок. Попробуйте через 15 минут."
+    }
+});
+
+app.use("/api/booking", bookingLimiter);
+
 
 app.post("/api/booking", async (req, res) => {
     if (!validateRequest(req.body)) {
